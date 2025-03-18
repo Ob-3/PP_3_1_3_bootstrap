@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование пользователя</title>
+</head>
+<body>
+<h2>Редактирование пользователя</h2>
+<form th:object="${user}" th:action="@{/admin/users/update}" method="post">
+    <input type="hidden" name="id" th:value="${user.id}" />
+    <label for="username">Имя пользователя:</label>
+    <input type="text" id="username" name="username" th:value="${user.username}" required />
+    <br>
+    <label for="password">Новый пароль:</label>
+    <input type="password" id="password" name="password" />
+    <br>
+    <label>Роли:</label>
+    <div th:each="role : ${allRoles}">
+        <input type="checkbox" th:field="*{roles}" th:value="${role.id}">
+        <span th:text="${role.name}"></span>
+    </div>
+    <br>
+    <button type="submit">Сохранить</button>
+</form>
+<br>
+<button type="button" onclick="window.location.href='/admin/users'">Отмена</button>
+</body>
+</html>
+
