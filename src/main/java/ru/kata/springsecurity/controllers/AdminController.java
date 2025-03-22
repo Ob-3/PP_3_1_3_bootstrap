@@ -1,8 +1,10 @@
 package ru.kata.springsecurity.controllers;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import ru.kata.springsecurity.entity.User;
 import ru.kata.springsecurity.entity.Role;
+import ru.kata.springsecurity.security.CustomUserDetails;
 import ru.kata.springsecurity.service.RoleService;
 import ru.kata.springsecurity.service.UserService;
 import org.springframework.stereotype.Controller;
@@ -31,56 +33,18 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public String userList(Model model) {
+    public String userList(Model model, @AuthenticationPrincipal CustomUserDetails userDetails) {
         model.addAttribute("users", userService.findAll());
-        return "users-list";
-    }
-
-    @GetMapping("/users/edit/{id}")
-    public String editUserForm(@PathVariable Long id, Model model) {
-        User user = userService.findById(id).orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-        model.addAttribute("user", user);
-        model.addAttribute("allRoles", roleService.findAll());
-        return "edit-user";
-    }
-
-    @PostMapping("/users/update")
-    public String updateUser(@ModelAttribute User user, @RequestParam(value = "roles", required = false) List<Long> roleId) {
-
-        System.out.println("Полученные роли: " + roleId); //дебажим ошибку
-
-        Set<Role> roles = (roleId != null) ?
-                roleId.stream()
-                        .map(roleService::findById)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .collect(Collectors.toSet())
-                : new HashSet<>();
-
-        System.out.println("Назначаемые роли: " + roles);
-
-        user.setRoles(roles);
-        userService.update(user);
-        return "redirect:/admin/users";
-    }
-
-    @PostMapping("/users/delete/{id}")
-    public String deleteUser(@PathVariable Long id) {
-        userService.deleteById(id);
-        return "redirect:/admin/users";
-    }
-
-    @GetMapping("/users/add")
-    public String showAddUserForm(Model model) {
-        model.addAttribute("user", new User());
-        model.addAttribute("allRoles", roleService.findAll()); // Получаем все роли
-        return "add-user";
+        model.addAttribute("user", new User()); // Добавляем новый User
+        model.addAttribute("user", userDetails.getUser()); // Передаем объект User в шаблон
+        return "admin-panel";
     }
 
     @PostMapping("/users/add")
-    public String addUser(@ModelAttribute User user, @RequestParam(value = "roles", required = false) List<Long> roleId) {
+    public String addUser(@ModelAttribute User user, @RequestParam(value = "roles", required = false) List<String> roleId) {
         Set<Role> roles = (roleId != null) ?
                 roleId.stream()
+                        .map(Long::valueOf) // Преобразование String в Long
                         .map(roleService::findById)
                         .flatMap(Optional::stream)
                         .collect(Collectors.toSet())
@@ -91,4 +55,37 @@ public class AdminController {
         return "redirect:/admin/users";
     }
 
+    @PostMapping("/users/update")
+    public String updateUser(@ModelAttribute User formUser, @RequestParam(value = "roles", required = false) List<Long> roleId) {
+        // Загружаем пользователя из БД по ID
+        User user = userService.findById(formUser.getId()).orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        // Обновляем основные поля
+        user.setUsername(formUser.getUsername());
+        user.setFirstName(formUser.getFirstName());
+        user.setLastName(formUser.getLastName());
+        user.setAge(formUser.getAge());
+        user.setEmail(formUser.getEmail());
+        // Если пароль введен, обновляем его
+        if (formUser.getPassword() != null && !formUser.getPassword().isEmpty()) {
+            user.setPassword(formUser.getPassword()); // Лучше шифровать перед сохранением
+        }
+        // Обновляем роли
+        Set<Role> roles = (roleId != null) ?
+                roleId.stream()
+                        .map(roleService::findById)
+                        .flatMap(Optional::stream)
+                        .collect(Collectors.toSet())
+                : new HashSet<>();
+
+        user.setRoles(roles);
+        // Сохраняем обновленного пользователя
+        userService.update(user);
+        return "redirect:/admin/users";
+    }
+
+    @PostMapping("/users/delete/{id}")
+    public String deleteUser(@PathVariable Long id) {
+        userService.deleteById(id);
+        return "redirect:/admin/users";
+    }
 }

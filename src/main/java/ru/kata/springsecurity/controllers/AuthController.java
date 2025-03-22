@@ -22,7 +22,9 @@ public class AuthController {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserService userService, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public AuthController(UserService userService,
+                          RoleRepository roleRepository,
+                          PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -39,7 +41,13 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String registerUser(@RequestParam String username, @RequestParam String password, Model model) {
+    public String registerUser(@RequestParam String username,
+                               @RequestParam String password,
+                               @RequestParam String firstName,
+                               @RequestParam String lastName,
+                               @RequestParam int age,
+                               @RequestParam String email,
+                               Model model) {
         Optional<User> existingUser = userService.findByUsername(username);
         if (existingUser.isPresent()) {
             model.addAttribute("error", "Пользователь уже существует!");
@@ -49,6 +57,10 @@ public class AuthController {
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setAge(age);
+        user.setEmail(email);
 
         Role userRole = roleRepository.findByName("ROLE_USER").orElseThrow(() -> new RuntimeException("Роль не найдена"));
         user.setRoles(Collections.singleton(userRole));

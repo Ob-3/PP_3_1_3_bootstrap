@@ -1,15 +1,14 @@
 package ru.kata.springsecurity.entity;
 
 import jakarta.persistence.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import java.util.Collection;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "users")
-public class User implements UserDetails {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,20 +20,41 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    @NotBlank
+    private String firstName;
+
+    @Column(nullable = false)
+    @NotBlank
+    private String lastName;
+
+    @Column(nullable = false)
+    @Min(1)
+    private int age;
+
+    @Column(unique = true, nullable = false)
+    @NotBlank
+    private String email;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "users_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
+
     private Set<Role> roles;
 
     public User() {
     }
 
-    public User(String username, String password, Set<Role> roles) {
+    public User(String username, String password, String firstName, String lastName, int age, String email, Set<Role> roles) {
         this.username = username;
         this.password = password;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.age = age;
+        this.email = email;
         this.roles = roles;
     }
 
@@ -70,28 +90,41 @@ public class User implements UserDetails {
         this.roles = roles;
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles.stream().collect(Collectors.toSet());
+    public String getFirstName() {
+        return firstName;
     }
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
+    public String getLastName() {
+        return lastName;
     }
 
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
-    @Override
-    public boolean isEnabled() {
-        return true;
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getRoleNames() {
+        return roles.stream()
+                .map(Role::getName)
+                .collect(Collectors.joining(", "));
     }
 }

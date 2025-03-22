@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class UserServiceImpl implements UserService, UserDetailsService {
+public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -46,8 +46,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
+    @Transactional
     public Optional<User> findByUsername(String username) {
-        return Optional.empty();
+        return userRepository.findByUsername(username);
     }
 
     @Override
@@ -78,39 +79,22 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
         existingUser.setUsername(user.getUsername());
+        existingUser.setFirstName(user.getFirstName());
+        existingUser.setLastName(user.getLastName());
+        existingUser.setAge(user.getAge());
+        existingUser.setEmail(user.getEmail());
 
-        // Обновляем пароль только если он не пустой и не зашифрован
         if (user.getPassword() != null && !user.getPassword().isBlank() && !user.getPassword().startsWith("$2a$")) {
             existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
-        // Проверяем, были ли переданы роли, иначе оставляем старые
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
             Set<Role> updatedRoles = user.getRoles().stream()
                     .map(role -> roleService.findById(role.getId())
-                            .orElseThrow(() -> new RuntimeException("Роль не найдена")))
-                    .collect(Collectors.toSet());
+                            .orElseThrow(() -> new RuntimeException("Роль не найдена"))).collect(Collectors.toSet());
             existingUser.setRoles(updatedRoles);
         }
         userRepository.save(existingUser);
     }
-
-    @Override
-    @Transactional
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
-
-
-        List<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
-                .collect(Collectors.toList());
-
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPassword(),
-                authorities
-        );
-    }
-
 }
+
