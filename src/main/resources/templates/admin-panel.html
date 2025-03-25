@@ -15,7 +15,7 @@
 
 <!-- Навигационная панель -->
 <nav class="navbar navbar-dark bg-dark px-3">
-  <span class="navbar-text text-white" th:text="${user.email} + ' with roles: ' + ${user.roleNames}"></span>
+  <span class="navbar-text text-white" th:text="${currentUser.email} + ' with roles: ' + ${#strings.substringAfter(currentUser.roleNames, 'ROLE_')}"></span>
   <form th:action="@{/logout}" method="post" class="d-inline">
     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
     <button type="submit" class="btn btn-outline-light">Logout</button>
@@ -32,7 +32,7 @@
             <a class="nav-link active" href="#">Admin</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">User</a>
+            <a class="nav-link" href="/user/home">User</a>
           </li>
         </ul>
       </div>
@@ -75,7 +75,7 @@
               <td th:text="${user.lastName}"></td>
               <td th:text="${user.age}"></td>
               <td th:text="${user.email}"></td>
-              <td><span th:each="role : ${user.roles}" th:text="${role.name} + ' '"></span></td>
+              <td><span th:each="role : ${user.roles}" th:text="${#strings.substringAfter(role.name, 'ROLE_')} + ' '"></span></td>
               <td>
 
                 <!-- Модальное окно для редактирования -->
@@ -130,12 +130,11 @@
                             <input type="password" class="form-control" name="password" />
                           </div>
 
-                          <!-- Выбор роли -->
+                          <!-- Выбор ролей -->
                           <div class="mb-3 text-center">
                             <label class="form-label w-100"><strong>Role</strong></label>
-                            <select class="form-select mx-auto" name="roles" style="width: 100%;">
-                              <option value="1">ADMIN</option>
-                              <option value="2">USER</option>
+                            <select class="form-select mx-auto" name="roles" style="width: 100%;" multiple size="2">
+                              <option th:each="role : ${roles}" th:value="${role.id}" th:text="${#strings.substringAfter(role.name, 'ROLE_')}"></option>
                             </select>
                           </div>
 
@@ -186,9 +185,10 @@
                           </div>
                           <div class="mb-3 text-center">
                             <label class="form-label"><strong>Role</strong></label>
-                            <select class="form-select" disabled>
-                              <option th:each="role : ${user.roles}" th:text="${role.name}" selected></option>
-                            </select>
+
+                            <div class="form-control gray-input" style="height: auto; text-align: left;">
+                              <div th:each="role : ${user.roles}" th:text="${#strings.substringAfter(role.name, 'ROLE_')}" style="padding: 2px 0;"></div>
+                            </div>
                           </div>
                         </div>
                         <div class="modal-footer">
@@ -215,7 +215,7 @@
                 <h4 class="mb-0 text-start">Add new user</h4>
               </div>
               <div class="card-body">
-                <form th:action="@{/admin/users/add}" th:object="${user}" method="post">
+                <form th:action="@{/admin/users/add}" th:object="${newUser}" method="post">
 
                   <!-- First Name -->
                   <div class="mb-3 text-center">
@@ -259,14 +259,14 @@
                            style="width: 30%;" th:field="*{password}" required>
                   </div>
 
-                  <!-- Выбор роли -->
+                  <!-- Выбор ролей -->
                   <div class="mb-3 text-center">
                     <label class="form-label w-100"><strong>Role</strong></label>
-                    <select class="form-select mx-auto" name="roles" style="width: 30%;">
-                      <option value="1">ADMIN</option>
-                      <option value="2">USER</option>
+                    <select class="form-select mx-auto" name="roles" style="width: 30%;" multiple size="2">
+                      <option th:each="role : ${roles}" th:value="${role.id}" th:text="${role.name}"></option>
                     </select>
                   </div>
+
 
                   <!-- Кнопка отправки -->
                   <div class="text-center">

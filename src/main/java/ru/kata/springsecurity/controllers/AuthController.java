@@ -1,8 +1,6 @@
 package ru.kata.springsecurity.controllers;
 
 import org.springframework.web.bind.annotation.RequestMapping;
-import ru.kata.springsecurity.entity.Role;
-import ru.kata.springsecurity.entity.User;
 import ru.kata.springsecurity.repository.RoleRepository;
 import ru.kata.springsecurity.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,8 +9,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import java.util.Collections;
-import java.util.Optional;
 
 @Controller
 @RequestMapping("/")
@@ -48,25 +44,14 @@ public class AuthController {
                                @RequestParam int age,
                                @RequestParam String email,
                                Model model) {
-        Optional<User> existingUser = userService.findByUsername(username);
-        if (existingUser.isPresent()) {
-            model.addAttribute("error", "Пользователь уже существует!");
+        try {
+            userService.registerNewUser(username, password, firstName, lastName, age, email);
+            return "redirect:/login";
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", e.getMessage());
             return "register";
         }
-
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        user.setAge(age);
-        user.setEmail(email);
-
-        Role userRole = roleRepository.findByName("ROLE_USER").orElseThrow(() -> new RuntimeException("Роль не найдена"));
-        user.setRoles(Collections.singleton(userRole));
-
-        userService.save(user);
-        return "redirect:/login";
     }
+
 }
 

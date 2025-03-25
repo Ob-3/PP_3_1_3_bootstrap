@@ -1,20 +1,14 @@
 package ru.kata.springsecurity.service;
 
 import jakarta.transaction.Transactional;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.kata.springsecurity.entity.User;
 import ru.kata.springsecurity.entity.Role;
 import ru.kata.springsecurity.repository.RoleRepository;
 import ru.kata.springsecurity.repository.UserRepository;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -96,5 +90,71 @@ public class UserServiceImpl implements UserService {
         }
         userRepository.save(existingUser);
     }
-}
 
+    @Transactional
+    @Override
+    public void registerNewUser(String username, String password, String firstName, String lastName, int age, String email) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new IllegalArgumentException("Пользователь уже существует!");
+        }
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));  // ✅ Кодируем пароль в сервисе
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setAge(age);
+        user.setEmail(email);
+
+        Role userRole = roleRepository.findByName("ROLE_USER")
+                .orElseThrow(() -> new RuntimeException("Роль ROLE_USER не найдена"));
+        user.setRoles(Collections.singleton(userRole));
+
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void createUserWithRoles(User user, List<String> roleIds) {
+        if (!user.getPassword().startsWith("$2a$")) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));  // ✅ Кодируем пароль в сервисе
+        }
+
+        Set<Role> roles = (roleIds != null) ? roleIds.stream()
+                .map(Long::valueOf)
+                .map(roleService::findById)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet()) : new HashSet<>();
+
+        user.setRoles(roles);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void updateUserWithRoles(User formUser, List<Long> roleIds) {
+        User user = userRepository.findById(formUser.getId())
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        user.setUsername(formUser.getUsername());
+        user.setFirstName(formUser.getFirstName());
+        user.setLastName(formUser.getLastName());
+        user.setAge(formUser.getAge());
+        user.setEmail(formUser.getEmail());
+
+        if (formUser.getPassword() != null && !formUser.getPassword().isBlank() && !formUser.getPassword().startsWith("$2a$")) {
+            user.setPassword(passwordEncoder.encode(formUser.getPassword()));  // ✅ Пароль шифруем в сервисе
+        }
+
+        if (roleIds != null) {
+            Set<Role> updatedRoles = roleIds.stream()
+                    .map(roleService::findById)
+                    .flatMap(Optional::stream)
+                    .collect(Collectors.toSet());
+            user.setRoles(updatedRoles);
+        }
+
+        userRepository.save(user);
+    }
+
+}

@@ -52,7 +52,6 @@ public class CustomUserDetails implements UserDetails {
         return true;
     }
 
-
     public String getFirstName() {
         return user.getFirstName();
     }
